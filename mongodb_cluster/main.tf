@@ -17,15 +17,18 @@ data "template_file" "userdata" {
   template = "${file("${path.module}/mongo_userdata.sh")}"
   vars = {
     replica_set_name = "${var.replica_set_name}"
+    mongo_password = "${var.mongo_password}"
+    mongo_username = "${var.mongo_username}"
+    mongo_database = "${var.mongo_database}"
   }
 }
 
 resource "aws_instance" "mongo_secondary" {
-  count                  = 2
+  count                  = "${var.num_secondary_nodes}"
   ami                    = "${data.aws_ami.ubuntu_18_image.id}"
   instance_type          = "t2.micro"
   key_name               = "${var.key_name}"
-  subnet_id              = "${var.private_subnet_ids[count.index]}"
+  subnet_id              = "${var.private_subnet_ids[count.index % length(var.private_subnet_ids)]}"
   user_data              = "${data.template_file.userdata.rendered}"
   vpc_security_group_ids = ["${aws_security_group.mongo_sg.id}"]
   iam_instance_profile   = "${aws_iam_instance_profile.mongo-instance-profile.name}"
@@ -89,7 +92,7 @@ resource "aws_instance" "mongo_primary" {
   ami                    = "${data.aws_ami.ubuntu_18_image.id}"
   instance_type          = "t2.micro"
   key_name               = "${var.key_name}"
-  subnet_id              = "${var.private_subnet_ids[2]}"
+  subnet_id              = "${var.private_subnet_ids[0]}"
   user_data              = "${data.template_file.userdata.rendered}"
   vpc_security_group_ids = ["${aws_security_group.mongo_sg.id}"]
   iam_instance_profile   = "${aws_iam_instance_profile.mongo-instance-profile.name}"
@@ -135,36 +138,6 @@ resource "aws_instance" "mongo_primary" {
     provisioner "file" {
     source      = "${path.module}/keyFile"
     destination = "/home/ubuntu/keyFile"
-
-    connection {
-      type         = "ssh"
-      user         = "ubuntu"
-      host         = "${self.private_ip}"
-      agent        = false
-      private_key  = "${file("~/.ssh/id_rsa")}"
-      bastion_host = "${var.jumpbox_public_ip}"
-      bastion_user = "ec2-user"
-    }
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/cluster_setup.js"
-    destination = "/home/ubuntu/cluster_setup.js"
-
-    connection {
-      type         = "ssh"
-      user         = "ubuntu"
-      host         = "${self.private_ip}"
-      agent        = false
-      private_key  = "${file("~/.ssh/id_rsa")}"
-      bastion_host = "${var.jumpbox_public_ip}"
-      bastion_user = "ec2-user"
-    }
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/admin_setup.js"
-    destination = "/home/ubuntu/admin_setup.js"
 
     connection {
       type         = "ssh"

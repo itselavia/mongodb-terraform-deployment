@@ -12,6 +12,10 @@ echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/
 
 apt-get update
 apt-get install -y mongodb-org unzip python3-distutils jq build-essential python3-dev
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+rm -f get-pip.py
+pip3 install pymongo boto3
 
 sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
 
@@ -78,7 +82,7 @@ mv /home/ubuntu/parse_instance_tags.py /parse_instance_tags.py
 
 chmod +x populate_hosts_file.py
 chmod +x parse_instance_tags.py
-aws ec2 describe-instances --filters "Name=tag:Type,Values=secondary" "Name=instance-state-name,Values=running" --region us-east-1 | jq . | ./populate_hosts_file.py
+aws ec2 describe-instances --filters "Name=tag:Type,Values=secondary" "Name=instance-state-name,Values=running" --region us-east-1 | jq . | ./populate_hosts_file.py ${replica_set_name} ${mongo_database} ${mongo_username} ${mongo_password}
 
 INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id --silent)
 HOSTNAME=$(aws ec2 describe-instances --instance-id $INSTANCE_ID --region us-east-1 | jq . | ./parse_instance_tags.py)
@@ -93,19 +97,14 @@ service mongod restart
 service mongod status
 
 
-# if [ $MONGO_NODE_TYPE == "primary" ]; then
-#   while [ ! -f /home/ubuntu/cluster_setup.js ]
-#   do
-#     sleep 2
-#   done
-#   sleep 10
+if [ $MONGO_NODE_TYPE == "primary" ]; then
 
-#   mv /home/ubuntu/cluster_setup.js /cluster_setup.js
-#   mv /home/ubuntu/admin_setup.js /admin_setup.js
-#   mongo < cluster_setup.js
-#   service mongod restart
-#   sleep 15
-#   mongo < admin_setup.js
-# fi
+  sleep 15
+  mongo < cluster_setup.js
+  service mongod restart
+  sleep 15
+  mongo < user_setup.js
+  mv user_setup.js deleted.js
+fi
 
-# service mongod restart
+service mongod restart
