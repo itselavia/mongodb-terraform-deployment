@@ -7,15 +7,15 @@ apt-get update
 echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
 systemctl restart ssh
 
-wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | apt-key add -
-echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.0.list
+wget -qO - https://www.mongodb.org/static/pgp/server-4.0.asc | apt-key add -
+echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.0.list
 
 apt-get update
 apt-get install -y mongodb-org unzip python3-distutils jq build-essential python3-dev
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python3 get-pip.py
 rm -f get-pip.py
-pip3 install pymongo boto3
+pip3 install pymongo boto3 pyping
 
 sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
 
@@ -90,12 +90,12 @@ hostnamectl set-hostname $HOSTNAME
 
 MONGO_NODE_TYPE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Type" --region us-east-1 | jq .Tags[0].Value --raw-output)
 
+
 systemctl enable mongod.service
 
 service mongod start
 service mongod restart
 service mongod status
-
 
 if [ $MONGO_NODE_TYPE == "primary" ]; then
 

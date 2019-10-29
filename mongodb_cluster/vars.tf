@@ -34,3 +34,6 @@ variable "mongo_database" {
   
 }
 
+variable "vpc_cidr_block" {
+  
+}
