@@ -13,6 +13,9 @@ data "aws_ami" "ubuntu_18_image" {
   }
 }
 
+data "aws_region" "current" {}
+
+
 data "template_file" "userdata" {
   template = "${file("${path.module}/mongo_userdata.sh")}"
   vars = {
@@ -20,6 +23,7 @@ data "template_file" "userdata" {
     mongo_password = "${var.mongo_password}"
     mongo_username = "${var.mongo_username}"
     mongo_database = "${var.mongo_database}"
+    aws_region = "${data.aws_region.current.name}"
   }
 }
 

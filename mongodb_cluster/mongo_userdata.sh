@@ -15,7 +15,6 @@ apt-get install -y mongodb-org unzip python3-distutils jq build-essential python
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python3 get-pip.py
 rm -f get-pip.py
-pip3 install pymongo boto3 pyping
 
 sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
 
@@ -48,13 +47,12 @@ EOL
 
 chown ubuntu:ubuntu /etc/systemd/system/mongod.service
 
-
 curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
 unzip awscli-bundle.zip
 rm -rf awscli-bundle.zip
 /usr/bin/python3 ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
 
-PRIMARY_PUBLIC_IP=$(aws ec2 describe-instances --filters "Name=tag:Type,Values=primary" "Name=instance-state-name,Values=running" --region us-east-1 | jq .Reservations[0].Instances[0].PrivateIpAddress --raw-output)
+PRIMARY_PUBLIC_IP=$(aws ec2 describe-instances --filters "Name=tag:Type,Values=primary" "Name=instance-state-name,Values=running" --region ${aws_region} | jq .Reservations[0].Instances[0].PrivateIpAddress --raw-output)
 echo "$PRIMARY_PUBLIC_IP primary" >> /etc/hosts
 
 while [ ! -f /home/ubuntu/populate_hosts_file.py ]
@@ -82,14 +80,13 @@ mv /home/ubuntu/parse_instance_tags.py /parse_instance_tags.py
 
 chmod +x populate_hosts_file.py
 chmod +x parse_instance_tags.py
-aws ec2 describe-instances --filters "Name=tag:Type,Values=secondary" "Name=instance-state-name,Values=running" --region us-east-1 | jq . | ./populate_hosts_file.py ${replica_set_name} ${mongo_database} ${mongo_username} ${mongo_password}
+aws ec2 describe-instances --filters "Name=tag:Type,Values=secondary" "Name=instance-state-name,Values=running" --region ${aws_region} | jq . | ./populate_hosts_file.py ${replica_set_name} ${mongo_database} ${mongo_username} ${mongo_password}
 
 INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id --silent)
-HOSTNAME=$(aws ec2 describe-instances --instance-id $INSTANCE_ID --region us-east-1 | jq . | ./parse_instance_tags.py)
+HOSTNAME=$(aws ec2 describe-instances --instance-id $INSTANCE_ID --region ${aws_region} | jq . | ./parse_instance_tags.py)
 hostnamectl set-hostname $HOSTNAME
 
-MONGO_NODE_TYPE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Type" --region us-east-1 | jq .Tags[0].Value --raw-output)
-
+MONGO_NODE_TYPE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Type" --region ${aws_region} | jq .Tags[0].Value --raw-output)
 
 systemctl enable mongod.service
 
@@ -104,7 +101,7 @@ if [ $MONGO_NODE_TYPE == "primary" ]; then
   service mongod restart
   sleep 15
   mongo < user_setup.js
-  mv user_setup.js deleted.js
+  rm -f user_setup.js
 fi
 
 service mongod restart
