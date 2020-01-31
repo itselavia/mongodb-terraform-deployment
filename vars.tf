@@ -21,3 +21,11 @@ variable "mongo_username" {
 variable "mongo_database" {
   
 }
+
+variable "primary_node_type" {
+  
+}
+
+variable "secondary_node_type" {
+  
+}

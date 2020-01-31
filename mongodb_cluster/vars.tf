@@ -37,3 +37,11 @@ variable "mongo_database" {
 variable "vpc_cidr_block" {
   
 }
+
+variable "primary_node_type" {
+  
+}
+
+variable "secondary_node_type" {
+  
+}

@@ -30,7 +30,7 @@ data "template_file" "userdata" {
 resource "aws_instance" "mongo_secondary" {
   count                  = "${var.num_secondary_nodes}"
   ami                    = "${data.aws_ami.ubuntu_18_image.id}"
-  instance_type          = "t2.micro"
+  instance_type          = "${var.secondary_node_type}"
   key_name               = "${var.key_name}"
   subnet_id              = "${var.private_subnet_ids[count.index % length(var.private_subnet_ids)]}"
   user_data              = "${data.template_file.userdata.rendered}"
@@ -94,7 +94,7 @@ resource "aws_instance" "mongo_secondary" {
 
 resource "aws_instance" "mongo_primary" {
   ami                    = "${data.aws_ami.ubuntu_18_image.id}"
-  instance_type          = "t2.micro"
+  instance_type          =  "${var.primary_node_type}"
   key_name               = "${var.key_name}"
   subnet_id              = "${var.private_subnet_ids[0]}"
   user_data              = "${data.template_file.userdata.rendered}"
