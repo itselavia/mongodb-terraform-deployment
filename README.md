@@ -8,8 +8,13 @@ This project creates in AWS a VPC, Public/Private subnets, a Jumpbox server in t
 
 ### Steps to Deploy
 1. Clone this repository
-2. cd into the repository
-3. Edit the variables in the terraform.tfvars file
+2. Create KeyFile for Mongo Authentication
+```bash
+openssl rand -base64 756 > keyFile
+```
+
+3. cd into the repository
+4. Edit the variables in the terraform.tfvars file
 ```hcl
   vpc_name = "mongo_vpc"
   replica_set_name = "mongoRs"
